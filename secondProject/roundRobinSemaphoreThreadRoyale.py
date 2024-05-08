@@ -145,7 +145,14 @@ def round_robin():
             outro_personagem = random.choice(Personagem.lista_personagens)
             if outro_personagem is not personagem and personagem.vivo:
                 personagem.atacar(outro_personagem)
-        time.sleep(2)
+        
+        # Verificar se há apenas um personagem vivo após cada turno
+        vivos = [personagem for personagem in Personagem.lista_personagens if personagem.vivo]
+        if len(vivos) == 1:
+            print(f"{vivos[0].nome} é o último sobrevivente e venceu o Battle Royale!")
+            break
+            
+        time.sleep(1)
 
 # Inicialize a arma única
 arma_unica = ArmaUnica()
@@ -172,7 +179,10 @@ for i, nome in enumerate(nomes):
 
 Personagem.lista_personagens = personagens
 
-# Iniciar threads para personagens e escalonador
+
+for personagem in personagens:
+    personagem.imprimir_status()
+
 for personagem in personagens:
     personagem.start()
 
