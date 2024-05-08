@@ -3,14 +3,8 @@ import time
 import random
 
 class ArmaUnica:
-    def __init__(self):
-        self.semaphore = threading.Semaphore(1)  # Inicializa o semáforo com valor inicial de 1 (disponível)
-
     def tentar_pegar_arma(self) -> bool:
-        return self.semaphore.acquire(blocking=False)  # Tenta adquirir o semáforo sem bloquear
-
-    def soltar_arma(self):
-        self.semaphore.release()  # Libera o semáforo
+        return True  # Tenta adquirir a arma
 
 
 class Personagem(threading.Thread):
@@ -56,8 +50,6 @@ class Personagem(threading.Thread):
         self.vida = round(self.vida - dano, 2)
         if self.vida <= 0:
             self.vivo = False
-            if self.arma_unica:
-                arma_unica.soltar_arma()  # Solta a arma única se o personagem morrer
             Personagem.lista_personagens.remove(self)
 
     def aplicar_modificador(self, outro_personagem: 'Personagem'):
@@ -77,10 +69,11 @@ class Personagem(threading.Thread):
             return
 
         elif outro_personagem.vivo and self.vivo:
-            if aim <= 15:
+            if aim <= 100:
+            #if aim <= 15:
                 # Tenta adquirir a arma única
                 if arma_unica.tentar_pegar_arma():  # Verifica se o personagem já possui a arma única
-                    self.dano += 5  # Aumenta o dano do personagem em 5 pontos
+                    self.dano += 10  # Aumenta o dano do personagem em 10 pontos
                     self.aplicar_modificador(outro_personagem)
                     outro_personagem.receber_dano(round(self.dano))  # Dano dobrado com a arma única
                     print(f"{self.nome} PEGOU a arma única e deu um ataque em {outro_personagem.nome}, "
