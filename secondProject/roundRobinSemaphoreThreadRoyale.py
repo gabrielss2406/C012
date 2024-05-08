@@ -1,6 +1,7 @@
 import threading
 import time
 import random
+from queue import Queue
 
 class ArmaUnica:
     def __init__(self):
@@ -24,7 +25,8 @@ class Personagem(threading.Thread):
             dano: int,
             velocidade: int,
             accuracy: int,
-            habilidade: str
+            habilidade: str,
+            turno: int
     ):
         super().__init__()
         if habilidade == "veloz":
@@ -42,6 +44,7 @@ class Personagem(threading.Thread):
         self.habilidade = habilidade
         self.vivo = True
         self.arma_unica = False  # Indica se o personagem possui a arma única
+        self.turno = turno
 
         if dano <= 12:
             self.arma = "socou"
@@ -124,15 +127,25 @@ class Personagem(threading.Thread):
                 time.sleep(10)
             time.sleep(5-self.velocidade)
 
-            outro_personagem = random.choice(Personagem.lista_personagens)
-            if outro_personagem is not self:
-                self.atacar(outro_personagem)
+            # Agora vamos usar uma fila para o escalonamento
+            global fila_personagens
+            fila_personagens.put(self)
+            time.sleep(0.1)  # Garantir que todos os personagens sejam adicionados à fila
 
-            if len(Personagem.lista_personagens) == 1:
-                if Personagem.lista_personagens[0] == self:
-                    print(f"{Personagem.lista_personagens[0].nome} é o último sobrevivente e "
-                          f"venceu o Battle Royale com {Personagem.lista_personagens[0].vida} de vida!")
-                break
+
+# Inicialize a fila de personagens
+fila_personagens = Queue()
+
+# Função que executa o escalonamento
+def round_robin():
+    global fila_personagens
+    while True:
+        if not fila_personagens.empty():
+            personagem = fila_personagens.get()
+            outro_personagem = random.choice(Personagem.lista_personagens)
+            if outro_personagem is not personagem and personagem.vivo:
+                personagem.atacar(outro_personagem)
+        time.sleep(2)
 
 # Inicialize a arma única
 arma_unica = ArmaUnica()
@@ -141,7 +154,7 @@ arma_unica = ArmaUnica()
 personagens = []
 nomes = ["Personagem 1", "Personagem 2", "Personagem 3"]  # Adicione mais nomes conforme necessário
 habilidades = ["vampirismo", "comum", "encegamento", "ladino", "veloz", "tanque", "forte"]
-for nome in nomes:
+for i, nome in enumerate(nomes):
     vida = random.randint(80, 125)
     dano = random.randint(10, 20)
     velocidade = random.randint(1, 2) if vida > 100 else random.randint(2, 3)
@@ -153,17 +166,18 @@ for nome in nomes:
                             dano=dano,
                             velocidade=velocidade,
                             accuracy=precisao,
-                            habilidade=random.choice(habilidades))
+                            habilidade=random.choice(habilidades),
+                            turno=i)
     personagens.append(personagem)
 
 Personagem.lista_personagens = personagens
 
-for personagem in personagens:
-    personagem.imprimir_status()
-
-# Iniciando a batalha
+# Iniciar threads para personagens e escalonador
 for personagem in personagens:
     personagem.start()
+
+thread_escalonador = threading.Thread(target=round_robin)
+thread_escalonador.start()
 
 while True:
     if len(Personagem.lista_personagens) == 1:
@@ -181,5 +195,7 @@ while True:
 # Aguardando o término de todas as threads
 for personagem in personagens:
     personagem.join()
+
+thread_escalonador.join()
 
 print("Battle Royale encerrado.")
